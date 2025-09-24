@@ -1,17 +1,13 @@
-import express from "express"; // default import
+// index.js
+import express from "express";
+import questionRoutes from "./Routes/questionRoutes.js";
 
 const app = express();
+
+app.use(express.json()); // ✅ parse JSON body
+app.use("/api", questionRoutes);
+
 const PORT = 3000;
-
-app.use(express.json());
-
-app.get('/', (req, res) => {
-  console.log(`The server is running on port ${PORT}`); 
-  res.send(`Hello! Server is running on port ${PORT}`); 
-});
-
 app.listen(PORT, () => {
   console.log(`Server started on http://localhost:${PORT}`);
 });
-
-export default app;
