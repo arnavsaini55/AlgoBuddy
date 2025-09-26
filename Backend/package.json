@@ -21,8 +21,10 @@
   "dependencies": {
     "dotenv": "^17.2.2",
     "drizzle-orm": "^0.44.5",
+    "env": "^0.0.2",
     "express": "^5.1.0",
     "node": "^24.8.0",
+    "openai": "^5.23.1",
     "pg": "^8.16.3"
   }
 }

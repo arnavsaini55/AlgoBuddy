@@ -7,4 +7,6 @@ const router = Router();
 router.post("/questions", createQuestion);
 router.get("/questions", getQuestions);
 
+
+
 export default router;

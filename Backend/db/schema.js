@@ -17,6 +17,7 @@ export const questionsTable = pgTable("questions", {
   description: text("description").notNull(),
   difficulty: varchar("difficulty", { length: 50 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+   password: text("password").notNull(),
 });
 
 // ================= SUBMISSIONS TABLE =================
