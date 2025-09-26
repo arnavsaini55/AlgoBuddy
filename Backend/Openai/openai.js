@@ -3,9 +3,15 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const openai = new OpenAI({
-    apiKey: process.env.OPEN_API_KEY
-})
+export const SYSTEM_PROMPT = `
+You are an AI assistant that checks if a user's answer is correct.
+Compare the user's answer with the correct answer, and return a JSON:
+{
+  "isCorrect": true/false,
+  "explanation": "reason why the answer is correct or incorrect"
+}
+`;
 
-
-export default openai;
+export const openaiClient = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
