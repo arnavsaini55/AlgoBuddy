@@ -1,5 +1,4 @@
-// Controller/questionController.js
-import db from "../db/index.js";
+import { db } from "../db/index.js";
 import { questionsTable } from "../db/schema.js";
 
 // ✅ Create new question

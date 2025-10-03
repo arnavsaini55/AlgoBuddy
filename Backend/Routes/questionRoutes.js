@@ -1,11 +1,11 @@
-// Routes/question_routes.js
 import { Router } from "express";
-import { createQuestion, getQuestions } from "../Controller//questioncontroller.js";
+import { createQuestion, getQuestions } from "../Controller/questioncontroller.js";
+import { validateQuestion } from "../Middleware/ValidateQuestion.js";
 
 const router = Router();
 
-router.post("/questions", createQuestion);
-router.get("/questions", getQuestions);
+router.post("/", validateQuestion, createQuestion);
+router.get("/", getQuestions);
 
 
 

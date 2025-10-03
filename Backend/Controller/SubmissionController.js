@@ -13,13 +13,13 @@ export const checkSubmission = async (req, res) => {
   try {
     const messages = [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: `Question: ${question.description}` },
-      { role: "user", content: `Correct answer: ${question.correct_answer}` },
+      { role: "user", content: `Question: ${question[0].description}` },
+      { role: "user", content: `Correct answer: ${question[0].answers}` },
       { role: "user", content: `User's answer: ${userAnswer}` },
     ];
 
     const response = await openaiClient.chat.completions.create({
-      model: "gpt-4.1-mini",
+      model: "gpt-3.5-turbo",
       messages,
     });
 
