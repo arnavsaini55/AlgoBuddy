@@ -4,11 +4,11 @@ import { questionsTable } from "../db/schema.js";
 import { eq  } from "drizzle-orm";
 
 export const validation = async (req, res, next ) => {
-    const { questionId, answer: userAnswer } = req.body;
-    if (!questionId || !userAnswer) {
+    const { questionId, answer: userAnswer, userId } = req.body;
+    if (!questionId || !userAnswer || !userId) {
         return res
             .status(400)
-            .json({ error: "questionId and answer are required" });
+            .json({ error: "questionId, answer and userId are required" });
     }
 
     const question = await db

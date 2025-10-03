@@ -32,15 +32,25 @@ export const checkSubmission = async (req, res) => {
       parsed = { isCorrect: false, explanation: rawContent };
     }
 
-    const submission = await db
-      .insert(submissionsTable)
-      .values({
-        userId: req.body.userId,
-        questionId: question.id,
-        answer: userAnswer,
-        status: parsed.isCorrect ? "correct" : "incorrect",
-      })
-      .returning();
+    let submission;
+    try {
+      submission = await db
+        .insert(submissionsTable)
+        .values({
+          userId: req.body.userId,
+          questionId: question[0].id,
+          answer: userAnswer,
+          status: parsed.isCorrect ? "correct" : "incorrect",
+        })
+        .returning();
+    } catch (error) {
+      console.error('Error inserting submission:', error);
+      return res.status(500).json({ error: "Failed to save submission" });
+    }
+
+    if (!submission.length) {
+      return res.status(500).json({ error: "Failed to create submission" });
+    }
 
     if (parsed.isCorrect) {
       const streak = await db
