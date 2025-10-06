@@ -3,6 +3,7 @@ import express from "express";
 import questionRoutes from "./Routes/questionRoutes.js";
 import userRoutes from "./Routes/UsersRoutes.js";
 import submissionRoutes from "./Routes/submissionRoutes.js";
+import authRoutes from "./Routes/AuthenticationRoutes.js";
 
 const app = express();
 
@@ -17,6 +18,9 @@ app.get('/health', (req, res) => {
 app.use("/api/questions", questionRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/submissions", submissionRoutes);
+app.use("/api/auth", authRoutes);
+
+
 
 // 404 handler
 app.use((req, res, next) => {
