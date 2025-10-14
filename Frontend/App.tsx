@@ -1,19 +1,12 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Text } from "react-native";
-import SearchBar from "./Components/SearchBar/SearchBar";
+import React from "react";
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Navigation from './navigation';
 
 const App = () => {
-  const [searchText, setSearchText] = useState("");
-
   return (
-    <View >
-      {/* <SearchBar
-        value={searchText}
-        onChangeText={setSearchText}
-        placeholder="Search something..."
-      />
-      <Text ></Text> */}
-    </View>
+    <SafeAreaProvider>
+      <Navigation />
+    </SafeAreaProvider>
   );
 };
 
