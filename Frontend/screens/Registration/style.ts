@@ -1,0 +1,86 @@
+import { StyleSheet } from "react-native";
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9ff",
+    justifyContent: "center",
+  },
+  animation: {
+    width: 250,
+    height: 250,
+    alignSelf: "center",
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#222",
+    textAlign: "center",
+    marginBottom: 15,
+    textShadowColor: "rgba(0,0,0,0.1)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
+  },
+  formContainer: {
+    width: "90%",
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    alignSelf: "center",
+  },
+  label: {
+    fontSize: 15,
+    color: "#555",
+    marginBottom: 5,
+    marginTop: 12,
+  },
+  input: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    backgroundColor: "#fafafa",
+    fontSize: 16,
+    color: "#333",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    backgroundColor: "#fafafa",
+    height: 48,
+  },
+  button: {
+    marginTop: 25,
+    backgroundColor: "#4C68FF",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    shadowColor: "#4C68FF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  buttonPressed: {
+    backgroundColor: "#3A54D1",
+    transform: [{ scale: 0.98 }],
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+});
+
+export default styles;

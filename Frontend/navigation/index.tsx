@@ -9,27 +9,38 @@ import Homepage from '../screens/Homepage/Homepage';
 import Details from '../screens/Details/Details';
 import Problems from '../screens/Problems/Problems';
 import Profile from '../screens/Profile/Profile';
-import { Routes } from './Routes';
+import { Routes, RootStackParamList, TabParamList } from './Routes';
+import Registration from '../screens/Registration/Registration';
 
-const Stack = createStackNavigator();
-const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
 
 // ----- App Tabs -----
 const AppTabs = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
+      headerShown: false,
       tabBarIcon: ({ color, size }) => {
         let iconName: any = 'ellipse';
-        if (route.name === Routes.Home) iconName = 'home-outline';
-        else if (route.name === Routes.Problems) iconName = 'list-outline';
-        else if (route.name === Routes.Profile) iconName = 'person-outline';
+        if (route.name === 'Home') iconName = 'home-outline';
+        else if (route.name === 'Problems') iconName = 'list-outline';
+        else if (route.name === 'Profile') iconName = 'person-outline';
         return <Ionicons name={iconName} size={size} color={color} />;
       },
     })}
   >
-    <Tab.Screen name={Routes.Home} component={Homepage} options={{ headerShown: false }} />
-    <Tab.Screen name={Routes.Problems} component={Problems} />
-    <Tab.Screen name={Routes.Profile} component={Profile} />
+    <Tab.Screen 
+      name="Home"
+      component={Homepage}
+    />
+    <Tab.Screen 
+      name="Problems"
+      component={Problems}
+    />
+    <Tab.Screen 
+      name="Profile"
+      component={Profile}
+    />
   </Tab.Navigator>
 );
 
@@ -37,14 +48,23 @@ const AppTabs = () => (
 export default function Navigation() {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator 
+        initialRouteName="Login"
+        screenOptions={{ 
+          headerShown: false,
+          gestureEnabled: false 
+        }}
+      >
         <Stack.Screen 
-          name={Routes.Login} 
+          name="Login"
           component={Login}
-          options={{ headerShown: false }}
         />
         <Stack.Screen 
-          name={Routes.AppTabs} 
+          name="Registration"
+          component={Registration}
+        />
+        <Stack.Screen 
+          name="AppTabs"
           component={AppTabs}
         />
       </Stack.Navigator>

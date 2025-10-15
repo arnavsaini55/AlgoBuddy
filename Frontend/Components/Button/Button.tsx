@@ -7,6 +7,7 @@ interface ButtonProps {
   onPress: () => void;
   color?: string;
   disabled?: boolean;
+  animationSource: any;
 }
 
 const Button: React.FC<ButtonProps> = ({
