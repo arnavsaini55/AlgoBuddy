@@ -5,7 +5,9 @@ import { styles } from "./style";
 interface SearchBarProps {
   placeholder?: string;
   value: string; // current text in the search bar
-  onChangeText: (text: string) => void; // called when user types
+  onChangeText: (text: string) => void; 
+  style?: object;
+   secureTextEntry?: boolean;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({

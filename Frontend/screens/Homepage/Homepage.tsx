@@ -3,6 +3,10 @@ import { View, Text, Button, StyleSheet } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList, Routes } from '../../navigation/Routes';
+import LottieView from 'lottie-react-native';
+import styles from './style';
+
+
 
 type HomeNavProp = StackNavigationProp<RootStackParamList, Routes.Home>;
 
@@ -11,13 +15,15 @@ export default function Homepage() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Homepage</Text>
-      <Button title="Go to Details" onPress={() => navigation.navigate(Routes.Details, { itemId: 42 })} />
+      <LottieView
+        source={require('../../assets/animations/login-animation.json')}
+        autoPlay
+        loop
+        style={{ width: 300, height: 300 }}
+      />
+      <Text style={styles.title}>Welcome to the Homepage!</Text>
+      <Button title="LOG OUT" onPress={() => navigation.navigate(Routes.Login)} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 18, marginBottom: 12 }
-});
