@@ -1,4 +1,4 @@
-import { SYSTEM_PROMPT, openaiClient } from "../OPenAi/openai.js";
+import { SYSTEM_PROMPT, openaiClient } from "../Openai/openai.js";
 import { db } from "../db/index.js";
 import { submissionsTable, streaksTable, questionsTable } from "../db/schema.js";
 
@@ -17,6 +17,10 @@ export const checkSubmission = async (req, res) => {
       { role: "user", content: `Correct answer: ${question[0].answers}` },
       { role: "user", content: `User's answer: ${userAnswer}` },
     ];
+
+    if (!openaiClient) {
+      return res.status(503).json({ error: "AI service unavailable: missing OPENAI_API_KEY" });
+    }
 
     const response = await openaiClient.chat.completions.create({
       model: "gpt-3.5-turbo",

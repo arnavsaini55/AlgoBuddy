@@ -12,6 +12,8 @@ Compare the user's answer with the correct answer, and return a JSON:
 }
 `;
 
-export const openaiClient = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI client only when an API key is present to avoid
+// crashing the server in environments where AI is not configured.
+export const openaiClient = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;

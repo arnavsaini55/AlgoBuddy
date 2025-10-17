@@ -1,4 +1,4 @@
-
+import cors from "cors";
 import express from "express";
 import questionRoutes from "./Routes/questionRoutes.js";
 import userRoutes from "./Routes/UsersRoutes.js";
@@ -8,6 +8,14 @@ import authRoutes from "./Routes/AuthenticationRoutes.js";
 const app = express();
 
 app.use(express.json());
+
+
+app.use(
+  cors({
+    origin: "*",
+    credentials: true,
+  })
+);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
