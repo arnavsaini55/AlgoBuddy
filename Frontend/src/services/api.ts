@@ -27,7 +27,7 @@ const API_BASE_URL = (() => {
 
   if (Platform.OS === "ios") {
     const host = getIosHost();
-    return `http://${host}:3000/api`;
+    return "http://192.168.29.114:3000/api";
   }
 
   // Fallback for web or other platforms

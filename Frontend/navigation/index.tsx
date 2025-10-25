@@ -19,28 +19,18 @@ const Tab = createBottomTabNavigator<TabParamList>();
 const AppTabs = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
-      headerShown: false,
       tabBarIcon: ({ color, size }) => {
         let iconName: any = 'ellipse';
-        if (route.name === 'Home') iconName = 'home-outline';
-        else if (route.name === 'Problems') iconName = 'list-outline';
-        else if (route.name === 'Profile') iconName = 'person-outline';
+        if (route.name === Routes.Home) iconName = 'home-outline';
+        else if (route.name === Routes.Problems) iconName = 'list-outline';
+        else if (route.name === Routes.Profile) iconName = 'person-outline';
         return <Ionicons name={iconName} size={size} color={color} />;
       },
     })}
   >
-    <Tab.Screen 
-      name="Home"
-      component={Homepage}
-    />
-    <Tab.Screen 
-      name="Problems"
-      component={Problems}
-    />
-    <Tab.Screen 
-      name="Profile"
-      component={Profile}
-    />
+    <Tab.Screen name={Routes.Home} component={Homepage} options={{ headerShown: false }} />
+    <Tab.Screen name={Routes.Problems} component={Problems} />
+    <Tab.Screen name={Routes.Profile} component={Profile} />
   </Tab.Navigator>
 );
 
@@ -48,24 +38,19 @@ const AppTabs = () => (
 export default function Navigation() {
   return (
     <NavigationContainer>
-      <Stack.Navigator 
-        initialRouteName="Login"
-        screenOptions={{ 
-          headerShown: false,
-          gestureEnabled: false 
-        }}
-      >
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen 
-          name="Login"
+          name={Routes.Login} 
           component={Login}
+          options={{ headerShown: false }}
         />
         <Stack.Screen 
-          name="Registration"
-          component={Registration}
-        />
-        <Stack.Screen 
-          name="AppTabs"
+          name={Routes.AppTabs} 
           component={AppTabs}
+        />
+        <Stack.Screen
+          name={Routes.Registration}
+          component={Registration}
         />
       </Stack.Navigator>
     </NavigationContainer>

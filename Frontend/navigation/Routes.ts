@@ -1,3 +1,5 @@
+import Registration from "../screens/Registration/Registration";
+
 export enum Routes {
     Home = "Home",
     HomeTab = 'HomeTab',
@@ -14,11 +16,13 @@ export type TabParamList = {
     [Routes.Home]: undefined;
     [Routes.Problems]: undefined;
     [Routes.Profile]: undefined;
+    
 };
 
 export type RootStackParamList = {
     [Routes.Login]: undefined;
-    [Routes.Registration]: undefined;
     [Routes.AppTabs]: undefined;
     [Routes.Details]: { itemId: number };
+    [Routes.Home]: undefined;
+    [Routes.Registration]: undefined;
 };

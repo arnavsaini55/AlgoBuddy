@@ -11,12 +11,21 @@ import {
 import LottieView from "lottie-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import api from "../../src/services/api";
 import styles from "./style";
 
+import { Routes, RootStackParamList } from "../../navigation/Routes";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+
 const Registration = () => {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList, Routes.Registration>>();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [age, setAge] = useState("");
+  const [name, setName] = useState("");
   const [isPressed, setIsPressed] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
@@ -24,12 +33,36 @@ const Registration = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
 
-  const handleRegister = () => {
-    setIsPressed(true);
-    setTimeout(() => {
+  const handleRegister = async () => {
+    if (!email || !password || !confirmPassword || !age || !name) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    try {
+      setIsPressed(true);
+      const res = await api.post("/auth/register", {
+        email,
+        password,
+        name,
+        age: parseInt(age),
+      });
       setIsPressed(false);
-      // Handle registration logic here
-    }, 1500);
+
+      alert("Registration Successful! Please log in.");
+      navigation.replace(Routes.Login); // Use replace to prevent back to registration
+    } catch (err: any) {
+      setIsPressed(false);
+      console.log(err);
+      alert(
+        err.response?.data?.message || "Registration Failed. Please try again."
+      );
+    }
   };
 
   // Fade + float animation
@@ -95,6 +128,27 @@ const Registration = () => {
             keyboardType="email-address"
           />
 
+          {/* Age */}
+          <Text style={styles.label}>Age</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Age"
+            placeholderTextColor="#999"
+            value={age}
+            onChangeText={setAge}
+            keyboardType="numeric"
+          />
+
+          {/* Name */}
+          <Text style={styles.label}>Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your name"
+            placeholderTextColor="#999"
+            value={name}
+            onChangeText={setName}
+          />
+
           {/* Password */}
           <Text style={styles.label}>Password</Text>
           <View style={styles.passwordContainer}>
@@ -148,6 +202,7 @@ const Registration = () => {
             style={[styles.button, isPressed && styles.buttonPressed]}
             activeOpacity={0.8}
             onPress={handleRegister}
+            disabled={isPressed}
           >
             <Text style={styles.buttonText}>
               {isPressed ? "Processing..." : "Register"}
