@@ -3,12 +3,11 @@ import { TouchableOpacity, StyleSheet } from "react-native";
 import LottieView from "lottie-react-native";
 
 interface AnimatedButtonProps {
+  title: string;
   onPress: () => void;
-  animationSource?: any;
-  style?: any;
 }
 
-const AnimatedButton: React.FC<AnimatedButtonProps> = ({ onPress, animationSource, style }) => {
+const AnimatedButton: React.FC<AnimatedButtonProps> = ({ title, onPress }) => {
   const animationRef = useRef<LottieView>(null);
 
   const handlePress = () => {
@@ -20,10 +19,10 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({ onPress, animationSourc
 
 
   return (
-    <TouchableOpacity onPress={handlePress} activeOpacity={0.8} style={[styles.buttonContainer, style]}>
+    <TouchableOpacity onPress={handlePress} activeOpacity={0.8} style={styles.buttonContainer}>
       <LottieView
         ref={animationRef}
-        source={animationSource || require("../../assets/animations/button-animation.json")}
+        source={require("../../assets/animations/button-animation.json")}
         loop={false}
         autoPlay={false}
         style={styles.animation}

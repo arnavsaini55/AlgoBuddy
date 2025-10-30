@@ -4,6 +4,7 @@ import questionRoutes from "./Routes/questionRoutes.js";
 import userRoutes from "./Routes/UsersRoutes.js";
 import submissionRoutes from "./Routes/submissionRoutes.js";
 import authRoutes from "./Routes/AuthenticationRoutes.js";
+import { getquesid } from "./Controller/questioncontroller.js";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use("/api/questions", questionRoutes);
+app.use("/api/questions/:id",getquesid);
 app.use("/api/users", userRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/auth", authRoutes);

@@ -7,8 +7,10 @@ export enum Routes {
     Login = 'Login',
     AppTabs = 'AppTabs',
     Problems = 'Problems',
+    QuestionDetail = 'QuestionDetail',
     Profile = 'Profile',
-    Registration = 'Registration'
+    Registration = 'Registration',
+
 }
 
 
@@ -25,4 +27,5 @@ export type RootStackParamList = {
     [Routes.Details]: { itemId: number };
     [Routes.Home]: undefined;
     [Routes.Registration]: undefined;
+    [Routes.QuestionDetail]: { id: string };
 };

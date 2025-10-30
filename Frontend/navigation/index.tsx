@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -6,11 +6,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 import Login from '../screens/Login/Login';
 import Homepage from '../screens/Homepage/Homepage';
-import Details from '../screens/Details/Details';
 import Problems from '../screens/Problems/Problems';
 import Profile from '../screens/Profile/Profile';
-import { Routes, RootStackParamList, TabParamList } from './Routes';
 import Registration from '../screens/Registration/Registration';
+import QuestionDetail from '../screens/QuestionDetail/QuestionDetail';
+import { Routes, RootStackParamList, TabParamList } from './Routes';
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -39,20 +39,15 @@ export default function Navigation() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen 
-          name={Routes.Login} 
-          component={Login}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name={Routes.AppTabs} 
-          component={AppTabs}
-        />
+        <Stack.Screen name={Routes.Login} component={Login} />
+        <Stack.Screen name={Routes.Registration} component={Registration} />
+        <Stack.Screen name={Routes.AppTabs} component={AppTabs} />
         <Stack.Screen
-          name={Routes.Registration}
-          component={Registration}
+          name={Routes.QuestionDetail}
+          component={QuestionDetail}
+          options={{ headerShown: true, title: 'Question Detail' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
   );
-};
+}
