@@ -12,15 +12,16 @@ export const getAllQuestions = async () => {
   }
 };
 
-export const getQuestionById = async (id: string) => {
+export const getQuestionById = async (id: string) =>{
   try {
-    const response = await api.get(`/questions/${id}`);
-    return response.data.data || response.data;
-  } catch (error) {
-    console.error("Error fetching question by ID:", error);
+    const response =await api.get(`/questions/${id}`)
+    return response.data.data || response.data
+  }
+  catch (error){
+    console.log("error in fetching",error)
     throw error;
   }
-};
+}
 
 
 // export const getQuestionById = async (id: string) => {
