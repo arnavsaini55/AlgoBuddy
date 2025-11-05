@@ -10,6 +10,7 @@ export const usersTable = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   password: text("password").notNull(),
   salt: text("salt").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // ================= QUESTIONS TABLE =================
@@ -33,17 +34,24 @@ export const questionsTable = pgTable("questions", {
 // ================= SUBMISSIONS TABLE =================
 export const submissionsTable = pgTable("submissions", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").notNull(),
-  questionId: uuid("question_id").notNull(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }), // ✅ enforce referential integrity
+  questionId: uuid("question_id")
+    .notNull()
+    .references(() => questionsTable.id, { onDelete: "cascade" }), // ✅ link to question
+  language: varchar("language", { length: 100 }).notNull().default("javascript"), // ✅ add language tracking
   answer: text("answer").notNull(),
-  status: varchar("status", { length: 50 }).notNull().default("pending"),
+  status: varchar("status", { length: 50 }).notNull().default("pending"), // "pass" | "fail" | "error"
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // ================= STREAKS TABLE =================
 export const streaksTable = pgTable("streaks", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").notNull(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
   currentStreak: integer("current_streak").notNull().default(0),
   longestStreak: integer("longest_streak").notNull().default(0),
   lastActiveDate: date("last_active_date"),

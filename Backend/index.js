@@ -5,6 +5,8 @@ import userRoutes from "./Routes/UsersRoutes.js";
 import submissionRoutes from "./Routes/submissionRoutes.js";
 import authRoutes from "./Routes/AuthenticationRoutes.js";
 import { getquesid } from "./Controller/questioncontroller.js";
+import compilerRoutes from "./Routes/compilerRoutes.js"
+
 
 const app = express();
 
@@ -29,6 +31,7 @@ app.use("/api/questions/:id",getquesid);
 app.use("/api/users", userRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/compile",compilerRoutes)
 
 
 
