@@ -1,6 +1,6 @@
 import axios from "axios";
 
-// Helper: decode base64 if present
+// Helper to safely decode base64 strings
 const tryDecode = (maybeBase64) => {
   if (!maybeBase64) return maybeBase64;
   try {
@@ -13,6 +13,7 @@ const tryDecode = (maybeBase64) => {
 export const compileCode = async (req, res) => {
   const { language, code, input = "" } = req.body || {};
 
+  // Validate input
   if (!code || typeof code !== "string") {
     return res.status(400).json({ error: "Missing or invalid 'code' in request body" });
   }
@@ -26,6 +27,7 @@ export const compileCode = async (req, res) => {
     return res.status(500).json({ error: "Server missing RAPIDAPI_KEY environment variable" });
   }
 
+  // Map languages to Judge0 IDs
   const languageMap = {
     javascript: 63,
     python: 71,
@@ -33,16 +35,16 @@ export const compileCode = async (req, res) => {
     java: 62,
   };
 
-  const languageId = languageMap[language.toLowerCase()] || 63;
+  const languageId = languageMap[language.toLowerCase()] || 63; // default JS
 
   try {
-    // Create submission; request base64 encoded output and do not wait
+    // Step 1: Create submission
     const createRes = await axios.post(
-      "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true&wait=false",
+      "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=false",
       {
-        source_code: code,
-        stdin: input,
-        language_id: languageId,
+        source_code: code, // plain string like "console.log('Hello AlgoBuddy!')"
+    stdin: input,
+    language_id: languageId,
       },
       {
         headers: {
@@ -54,15 +56,19 @@ export const compileCode = async (req, res) => {
     );
 
     const token = createRes.data.token;
+    if (!token) {
+      return res.status(500).json({ error: "No token received from Judge0" });
+    }
 
-    // Poll for result
-    const maxAttempts = 15;
+    // Step 2: Poll for result
     const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+    const maxAttempts = 15;
     let attempt = 0;
     let submission = null;
 
     while (attempt < maxAttempts) {
       attempt++;
+
       const out = await axios.get(
         `https://judge0-ce.p.rapidapi.com/submissions/${token}?base64_encoded=true&fields=stdout,stderr,status,compile_output`,
         {
@@ -74,24 +80,24 @@ export const compileCode = async (req, res) => {
       );
 
       submission = out.data;
-
-      // status.id: 1=In Queue, 2=Processing. Anything >2 is finished
       const statusId = submission?.status?.id ?? 0;
+
+      // 1 = In Queue, 2 = Processing. Anything >2 = done
       if (statusId > 2) break;
 
-      // wait before next poll (backoff)
-      await delay(1000 * attempt);
+      await delay(1000 * attempt); // exponential backoff
     }
 
     if (!submission) {
       return res.status(500).json({ error: "No submission result received" });
     }
 
-    // Decode outputs if base64 encoded
+    // Step 3: Decode base64 outputs
     const stdout = tryDecode(submission.stdout);
     const stderr = tryDecode(submission.stderr);
     const compileOutput = tryDecode(submission.compile_output);
 
+    // Step 4: Send final result
     return res.json({
       stdout,
       stderr,
@@ -101,6 +107,9 @@ export const compileCode = async (req, res) => {
     });
   } catch (error) {
     console.error("compileCode error:", error?.response?.data || error.message || error);
-    return res.status(500).json({ error: "Compilation failed", details: error?.message || error });
+    return res.status(500).json({
+      error: "Compilation failed",
+      details: error?.response?.data || error?.message || error,
+    });
   }
 };
