@@ -7,17 +7,23 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Modal,
   Platform,
+  Alert,
+  SafeAreaViewComponent,
 } from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { RootStackParamList, Routes } from "../../navigation/Routes";
 import { getQuestionById } from "../../src/services/question";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import { Picker } from "@react-native-picker/picker"; // install: npm i @react-native-picker/picker
+import { Picker } from "@react-native-picker/picker";
+import { FlatList } from "react-native-gesture-handler";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-type QuestionDetailRouteProp = RouteProp<RootStackParamList, typeof Routes.QuestionDetail>;
+type QuestionDetailRouteProp = RouteProp<
+  RootStackParamList,
+  typeof Routes.QuestionDetail
+>;
 
 interface Question {
   id?: string;
@@ -25,32 +31,36 @@ interface Question {
   title: string;
   difficulty: string;
   description?: string;
+  expectedOutput?: string;
+  sampleTestcases?: Array<{ input: string; output: string }>;
+  sample_testcases?: Array<{ input: string; output: string }>;
+  expectedFunctionName?: string;
 }
 
-const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({ route }) => {
+const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({
+  route,
+}) => {
   const { id } = route.params;
 
   const [question, setQuestion] = useState<Question | null>(null);
   const [loading, setLoading] = useState(true);
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("javascript");
-  const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
 
-  // Base URL handling for different environments/devices
-  // - Android emulator (default) should use 10.0.2.2 to reach host machine
-  // - iOS simulator can use localhost
-  // - Physical devices should use your machine IP, e.g. http://192.168.x.y:3000
-  // You can override by setting global.API_URL (or add a proper env/config)
-  const DEFAULT_BASE = Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
+  // temporary user id — replace with redux later
+  const userId = "temp_user_id";
+
+  const DEFAULT_BASE =
+    Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
   const BASE_URL = (global as any).API_URL || DEFAULT_BASE;
 
-  // Fetch question
   useEffect(() => {
     const fetchQuestion = async () => {
       try {
         const data = await getQuestionById(id);
+        console.log('Fetched question data:', data);
+        console.log('sampleTestcases:', data.sampleTestcases || data.sample_testcases);
         setQuestion(data);
       } catch (err) {
         console.error("Error fetching question:", err);
@@ -61,45 +71,266 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({ route })
     fetchQuestion();
   }, [id]);
 
-  // Load saved code
   useEffect(() => {
     const loadCode = async () => {
-      const savedCode = await AsyncStorage.getItem(`code_${id}_${language}`);
+      const savedCode = await AsyncStorage.getItem(
+        `code_${userId}_${id}_${language}`
+      );
       if (savedCode) setCode(savedCode);
     };
     loadCode();
-  }, [id, language]);
+  }, [id, language, userId]);
 
-  // Auto save
   useEffect(() => {
-    if (code) AsyncStorage.setItem(`code_${id}_${language}`, code);
-  }, [code, language, id]);
+    const saveCode = async () => {
+      if (!code) return;
+      await AsyncStorage.setItem(`code_${userId}_${id}_${language}`, code);
+    };
+    const debounce = setTimeout(saveCode, 800);
+    return () => clearTimeout(debounce);
+  }, [code, language, id, userId]);
 
-  // Run Code
-  const handleRun = async () => {
-    setRunning(true);
-    setOutput("");
+  // Helper function to parse input string like "nums = [2,7,11,15], target = 9"
+  const parseInputString = (inputStr: string): any => {
     try {
-      const res = await axios.post(`${BASE_URL}/api/compile`, {
-        language,
-        code,
-        input: "", // optional test input
-      }, { timeout: 20000 });
-      const data = res.data;
-      setOutput(data.stdout || data.stderr || data.compileOutput || "No Output");
-    } catch (err: any) {
-      // Improve error feedback for network vs server errors
-      if (err.message === "Network Error" || err.code === "ECONNABORTED") {
-        setOutput(`❌ Network Error: unable to reach ${BASE_URL}.\nCheck that the backend is running and reachable from your device.`);
-      } else if (err.response) {
-        setOutput(`❌ Server error: ${err.response.status} ${err.response.statusText}\n${JSON.stringify(err.response.data)}`);
-      } else {
-        setOutput(`❌ Unexpected error: ${err.message || err}`);
+      const result: any = {};
+      
+      // Use regex to match "key = value" patterns, handling arrays and objects
+      // This regex matches: key = value where value can be arrays, objects, strings, numbers, booleans
+      const pattern = /(\w+)\s*=\s*(\[[^\]]*\]|{[^}]*}|[^,]+)/g;
+      let match;
+      
+      while ((match = pattern.exec(inputStr)) !== null) {
+        const key = match[1].trim();
+        let valueStr = match[2].trim();
+        
+        try {
+          // Try to parse as JSON (for arrays, objects, numbers, booleans)
+          result[key] = JSON.parse(valueStr);
+        } catch {
+          // If not valid JSON, try to clean and parse again
+          // Remove surrounding quotes if present
+          valueStr = valueStr.replace(/^['"`]|['"`]$/g, '');
+          try {
+            result[key] = JSON.parse(valueStr);
+          } catch {
+            // If still not JSON, check if it's a boolean or number
+            if (valueStr === 'true') {
+              result[key] = true;
+            } else if (valueStr === 'false') {
+              result[key] = false;
+            } else if (!isNaN(Number(valueStr)) && valueStr !== '') {
+              result[key] = Number(valueStr);
+            } else {
+              // Keep as string
+              result[key] = valueStr;
+            }
+          }
+        }
       }
+      
+      return result;
+    } catch (error) {
+      console.error('Error parsing input string:', error, inputStr);
+      return {};
+    }
+  };
+
+  // Helper function to extract function name from user code
+  const extractFunctionName = (code: string, expectedName: string, language: string): string => {
+    if (language === 'javascript') {
+      // Try to find function declaration: function name(...) or const name = (...) =>
+      const functionMatch = code.match(/(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:\([^)]*\)\s*=>|function)|let\s+(\w+)\s*=\s*(?:\([^)]*\)\s*=>|function)|var\s+(\w+)\s*=\s*(?:\([^)]*\)\s*=>|function))/);
+      if (functionMatch) {
+        return functionMatch[1] || functionMatch[2] || functionMatch[3] || functionMatch[4] || expectedName;
+      }
+    } else if (language === 'python') {
+      // Try to find def name(...)
+      const defMatch = code.match(/def\s+(\w+)\s*\(/);
+      if (defMatch) {
+        return defMatch[1];
+      }
+    }
+    return expectedName;
+  };
+
+  // Helper function to wrap user code and call the function
+  const wrapCodeForExecution = (userCode: string, expectedFunctionName: string, testInput: any, language: string): string => {
+    // Try to extract actual function name from user code
+    const functionName = extractFunctionName(userCode, expectedFunctionName, language);
+    
+    if (language === 'javascript') {
+      const inputKeys = Object.keys(testInput);
+      
+      // Build function call arguments in the order they appear in the input
+      const args = inputKeys.map(key => {
+        const value = testInput[key];
+        if (Array.isArray(value)) {
+          return JSON.stringify(value);
+        } else if (typeof value === 'string') {
+          return `"${value.replace(/"/g, '\\"')}"`;
+        } else if (typeof value === 'boolean') {
+          return String(value);
+        } else {
+          return String(value);
+        }
+      }).join(', ');
+
+      // Wrap the code and call the function
+      return `${userCode}\n\n// Test execution\nconst result = ${functionName}(${args});\nconsole.log(JSON.stringify(result));`;
+    } else if (language === 'python') {
+      const inputKeys = Object.keys(testInput);
+      const args = inputKeys.map(key => {
+        const value = testInput[key];
+        if (Array.isArray(value)) {
+          return JSON.stringify(value).replace(/"/g, "'");
+        } else if (typeof value === 'string') {
+          return `"${value.replace(/"/g, '\\"')}"`;
+        } else {
+          return String(value);
+        }
+      }).join(', ');
+      
+      return `${userCode}\n\n# Test execution\nresult = ${functionName}(${args})\nprint(result)`;
+    }
+    
+    return userCode;
+  };
+
+  const compareOutputs = (userOutput: string, expectedOutput: string): boolean => {
+    if (!userOutput || !expectedOutput) return false;
+
+    // Clean and normalize the strings first
+    const cleanString = (s: string) => {
+      return s.toString()
+        .replace(/^['"`]|['"`]$/g, '')  // Remove quotes
+        .trim();
+    };
+
+    // Clean both outputs
+    let cleanUser = cleanString(userOutput);
+    let cleanExpected = cleanString(expectedOutput);
+
+    try {
+      // Try parsing both as JSON
+      const parsedUser = JSON.parse(cleanUser);
+      const parsedExpected = JSON.parse(cleanExpected);
+
+      // Deep comparison for objects and arrays
+      return JSON.stringify(parsedUser) === JSON.stringify(parsedExpected);
+    } catch {
+      // If not valid JSON, compare as normalized strings
+      const normalizeString = (s: string) => {
+        return s.toLowerCase()
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+
+      const normUser = normalizeString(cleanUser);
+      const normExpected = normalizeString(cleanExpected);
+
+      return normUser === normExpected;
+    }
+  };
+
+  const handleRun = async () => {
+    if (!code.trim()) {
+      Alert.alert("Error", "Please write some code first!");
+      return;
+    }
+
+    if (!question) {
+      Alert.alert("Error", "Question not loaded!");
+      return;
+    }
+
+    // Get test case from sampleTestcases (handle both camelCase and snake_case)
+    const testCases = question.sampleTestcases || question.sample_testcases || [];
+    if (testCases.length === 0) {
+      Alert.alert("Error", "No test cases available for this question!");
+      return;
+    }
+
+    const firstTestCase = testCases[0];
+    const expectedOutput = firstTestCase.output || "";
+    const inputString = firstTestCase.input || "";
+    
+    // Get function name (handle both camelCase and snake_case)
+    const functionName = question.expectedFunctionName || (question as any).expected_function_name || "solution";
+    
+    // Parse input string to extract actual values
+    const testInput = parseInputString(inputString);
+    
+    console.log('Parsed test input:', testInput);
+    console.log('Expected function name:', functionName);
+    console.log('Expected output:', expectedOutput);
+    
+    // Wrap code to call the function with test input
+    const wrappedCode = wrapCodeForExecution(code, functionName, testInput, language);
+    
+    console.log('Wrapped code:', wrappedCode);
+
+    setRunning(true);
+
+    try {
+      const res = await axios.post(
+        `${BASE_URL}/api/compile`,
+        { 
+          language, 
+          code: wrappedCode, 
+          input: "",
+          expectedOutput: expectedOutput
+        },
+        { timeout: 20000 }
+      );
+
+      const data = res.data;
+      
+      console.log('Compiler response:', data);
+      
+      // Check if there's a compilation error
+      if (data.compileOutput) {
+        console.error('Compilation error:', data.compileOutput);
+        Alert.alert("Compilation Error", data.compileOutput);
+        setRunning(false);
+        return;
+      }
+
+      // Check if there's a runtime error
+      if (data.stderr) {
+        console.error('Runtime error:', data.stderr);
+        Alert.alert("Runtime Error", data.stderr);
+        setRunning(false);
+        return;
+      }
+
+      const result = data.stdout?.trim() || "No Output";
+      
+      // Use backend comparison if available, otherwise compare on frontend
+      const isMatch = data.isCorrect !== undefined ? data.isCorrect : compareOutputs(result, expectedOutput);
+      
+      // Debug logs
+      console.log('=== OUTPUT COMPARISON ===');
+      console.log('User Output (raw):', JSON.stringify(result));
+      console.log('Expected Output (raw):', JSON.stringify(expectedOutput));
+      console.log('Backend isCorrect:', data.isCorrect);
+      console.log('Frontend comparison:', compareOutputs(result, expectedOutput));
+      console.log('Final Match:', isMatch);
+
+      if (isMatch) {
+        Alert.alert("✅ Success", "Your output matches the expected output!");
+      } else {
+        Alert.alert(
+          "❌ Failure",
+          `Expected:\n${expectedOutput}\n\nGot:\n${result}`
+        );
+      }
+    } catch (err: any) {
       console.error("Run error:", err);
+      const errorMessage = err.response?.data?.error || err.message || "Something went wrong while running the code.";
+      Alert.alert("Error", errorMessage);
     } finally {
       setRunning(false);
-      setModalVisible(true);
     }
   };
 
@@ -119,9 +350,8 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({ route })
     );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Question Info */}
         <Text style={styles.title}>{question.title}</Text>
         <Text style={styles.meta}>{question.difficulty}</Text>
 
@@ -129,7 +359,6 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({ route })
           <Text style={styles.description}>{question.description}</Text>
         </View>
 
-        {/* Language Selector */}
         <Text style={styles.sectionTitle}>Select Language</Text>
         <View style={styles.pickerContainer}>
           <Picker
@@ -137,6 +366,7 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({ route })
             dropdownIconColor="#fff"
             onValueChange={(value) => setLanguage(value)}
             style={styles.picker}
+            itemStyle={{ color: "#fff" }}
           >
             <Picker.Item label="JavaScript" value="javascript" />
             <Picker.Item label="Python" value="python" />
@@ -145,7 +375,6 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({ route })
           </Picker>
         </View>
 
-        {/* Code Editor */}
         <Text style={styles.sectionTitle}>Your Code</Text>
         <TextInput
           multiline
@@ -156,7 +385,6 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({ route })
           style={styles.editor}
         />
 
-        {/* Run Button */}
         <TouchableOpacity
           onPress={handleRun}
           disabled={running}
@@ -169,25 +397,7 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({ route })
           )}
         </TouchableOpacity>
       </ScrollView>
-
-      {/* Output Modal */}
-      <Modal visible={modalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Execution Result</Text>
-            <ScrollView style={styles.outputBox}>
-              <Text style={styles.outputText}>{output}</Text>
-            </ScrollView>
-            <TouchableOpacity
-              onPress={() => setModalVisible(false)}
-              style={styles.closeButton}
-            >
-              <Text style={styles.closeText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -206,21 +416,21 @@ const styles = StyleSheet.create({
   description: { color: "#EDEDED", lineHeight: 22 },
   sectionTitle: { color: "#fff", fontWeight: "700", marginTop: 20 },
   pickerContainer: {
-    backgroundColor: "#141414",
+    backgroundColor: "#1e1e1e",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#1f1f1f",
+    borderColor: "#2c2c2c",
     marginVertical: 10,
   },
   picker: { color: "#fff" },
   editor: {
-    backgroundColor: "#141414",
+    backgroundColor: "#1a1a1a",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#1f1f1f",
+    borderColor: "#333",
     minHeight: 220,
     color: "#fff",
-    fontFamily: "monospace",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
     textAlignVertical: "top",
     padding: 10,
   },
@@ -232,35 +442,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   runButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-  modalOverlay: {
+  center: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#0b0b0b",
   },
-  modalBox: {
-    backgroundColor: "#1c1c1c",
-    width: "85%",
-    padding: 20,
-    borderRadius: 12,
-  },
-  modalTitle: { color: "#fff", fontSize: 18, fontWeight: "700", marginBottom: 10 },
-  outputBox: {
-    maxHeight: 250,
-    backgroundColor: "#141414",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  outputText: { color: "#dcdcdc", fontFamily: "monospace" },
-  closeButton: {
-    backgroundColor: "#00b894",
-    borderRadius: 8,
-    padding: 10,
-    alignItems: "center",
-  },
-  closeText: { color: "#fff", fontWeight: "bold" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0b0b0b" },
   loadingText: { color: "#D0D0D0", marginTop: 10 },
   errorText: { color: "#FF6B6B", fontWeight: "600" },
 });

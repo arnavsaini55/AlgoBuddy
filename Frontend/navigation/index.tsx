@@ -15,7 +15,7 @@ import { Routes, RootStackParamList, TabParamList } from './Routes';
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
-// ----- App Tabs -----
+
 const AppTabs = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
@@ -34,7 +34,7 @@ const AppTabs = () => (
   </Tab.Navigator>
 );
 
-// ----- Root Stack -----
+
 export default function Navigation() {
   return (
     <NavigationContainer>

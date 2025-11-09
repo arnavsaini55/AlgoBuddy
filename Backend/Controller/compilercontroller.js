@@ -1,8 +1,6 @@
 import axios from "axios";
 
-
-const MAX_CODE_LENGTH = 20000; 
-
+const MAX_CODE_LENGTH = 20000;
 
 const sanitizeWithSummary = (s) => {
   const original = s == null ? "" : typeof s === "string" ? s : String(s);
@@ -13,43 +11,34 @@ const sanitizeWithSummary = (s) => {
     controlChars: 0,
     smartQuotes: 0,
     spaces: 0,
-    other: 0
+    other: 0,
   };
 
-  // 1. Replace common problematic characters
+  // Replace problematic characters and normalize spacing
   sanitized = sanitized
-    // Non-breaking spaces to regular spaces
-    .replace(/\u00A0/g, ' ')
-    // Smart quotes to regular quotes
-    .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'") // Smart single quotes
-    .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"') // Smart double quotes
-    // Zero-width spaces and joiners
-    .replace(/[\u200B-\u200F\u2060\uFEFF]/g, '')
-    // Other special spaces
-    .replace(/[\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
-    // Special dashes
-    .replace(/[\u2013\u2014\u2015]/g, '-');
-  
+    .replace(/\u00A0/g, " ")
+    .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
+    .replace(/[\u200B-\u200F\u2060\uFEFF]/g, "")
+    .replace(/[\u2000-\u200A\u202F\u205F\u3000]/g, " ")
+    .replace(/[\u2013\u2014\u2015]/g, "-");
+
   changes.smartQuotes = original.length - sanitized.length;
 
-  // 2. Remove control chars except common whitespace: allow \t (09), \n (10), \r (13)
   const cleaned = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
   changes.controlChars = sanitized.length - cleaned.length;
   sanitized = cleaned;
 
-  // 3. Normalize line endings (CRLF -> LF)
   sanitized = sanitized.replace(/\r\n?/g, "\n");
 
-  // 4. Normalize remaining whitespace
   sanitized = sanitized
-    .split('\n')
-    .map(line => line.replace(/\s+/g, ' ').trimRight())
-    .join('\n')
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trimRight())
+    .join("\n")
     .trim();
-  
+
   changes.spaces = cleaned.length - sanitized.length;
 
-  // 5. Truncate if too long
   let truncated = false;
   if (sanitized.length > MAX_CODE_LENGTH) {
     sanitized = sanitized.slice(0, MAX_CODE_LENGTH);
@@ -65,7 +54,6 @@ const sanitizeWithSummary = (s) => {
   };
 };
 
-// Helper to safely decode base64 strings
 const tryDecode = (maybeBase64) => {
   if (!maybeBase64) return maybeBase64;
   try {
@@ -75,12 +63,45 @@ const tryDecode = (maybeBase64) => {
   }
 };
 
+const normalize = (s) => {
+  if (!s || typeof s !== "string") return "";
+  return s.replace(/\s+/g, " ").trim().toLowerCase();
+};
+
+// Enhanced comparison function that handles arrays, objects, strings, numbers, booleans
+const compareOutputs = (userOutput, expectedOutput) => {
+  if (!userOutput && !expectedOutput) return true;
+  if (!userOutput || !expectedOutput) return false;
+
+  // Clean strings - remove quotes and whitespace
+  const cleanString = (str) => {
+    if (typeof str !== "string") str = String(str);
+    return str.replace(/^['"`]|['"`]$/g, "").trim();
+  };
+
+  let cleanUser = cleanString(userOutput);
+  let cleanExpected = cleanString(expectedOutput);
+
+  // Try to parse as JSON for structured data
+  try {
+    const parsedUser = JSON.parse(cleanUser);
+    const parsedExpected = JSON.parse(cleanExpected);
+    
+    // Deep comparison using JSON stringify
+    return JSON.stringify(parsedUser) === JSON.stringify(parsedExpected);
+  } catch {
+    // If not valid JSON, do normalized string comparison
+    const normUser = normalize(cleanUser);
+    const normExpected = normalize(cleanExpected);
+    return normUser === normExpected;
+  }
+};
+
 export const compileCode = async (req, res) => {
-  const { language } = req.body || {};
+  const { language, expectedOutput } = req.body || {};
   const rawCode = (req.body && req.body.code) || "";
   const rawInput = (req.body && req.body.input) || "";
 
-  // sanitize user submitted code and input (with summary)
   const codeSan = sanitizeWithSummary(rawCode);
   const inputSan = sanitizeWithSummary(rawInput);
   const code = codeSan.cleaned;
@@ -91,17 +112,16 @@ export const compileCode = async (req, res) => {
       changes: codeSan.changes,
       truncated: codeSan.truncated,
       originalLength: codeSan.originalLength,
-      finalLength: codeSan.finalLength
+      finalLength: codeSan.finalLength,
     },
     input: {
       changes: inputSan.changes,
       truncated: inputSan.truncated,
       originalLength: inputSan.originalLength,
-      finalLength: inputSan.finalLength
-    }
+      finalLength: inputSan.finalLength,
+    },
   };
 
-  // Validate input
   if (!code || typeof code !== "string") {
     return res.status(400).json({ error: "Missing or invalid 'code' in request body" });
   }
@@ -115,7 +135,6 @@ export const compileCode = async (req, res) => {
     return res.status(500).json({ error: "Server missing RAPIDAPI_KEY environment variable" });
   }
 
-  // Map languages to Judge0 IDs
   const languageMap = {
     javascript: 63,
     python: 71,
@@ -123,10 +142,9 @@ export const compileCode = async (req, res) => {
     java: 62,
   };
 
-  const languageId = languageMap[language.toLowerCase()] || 63; // default JS
+  const languageId = languageMap[language.toLowerCase()] || 63;
 
   try {
-  
     const createRes = await axios.post(
       "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true&wait=false",
       {
@@ -148,7 +166,6 @@ export const compileCode = async (req, res) => {
       return res.status(500).json({ error: "No token received from Judge0" });
     }
 
-  
     const delay = (ms) => new Promise((r) => setTimeout(r, ms));
     const maxAttempts = 15;
     let attempt = 0;
@@ -170,28 +187,59 @@ export const compileCode = async (req, res) => {
       submission = out.data;
       const statusId = submission?.status?.id ?? 0;
 
-      // 1 = In Queue, 2 = Processing. Anything >2 = done
+      // Status IDs: 1=In Queue, 2=Processing, 3=Accepted, 4=Wrong Answer, 5=Time Limit, 6=Compilation Error, 7=Runtime Error, etc.
       if (statusId > 2) break;
 
-      await delay(1000 * attempt); // exponential backoff
+      await delay(1000 * attempt);
     }
 
     if (!submission) {
       return res.status(500).json({ error: "No submission result received" });
     }
 
-  // Step 3: Decode base64 outputs (Judge0 returns base64 when requested)
-  const stdout = tryDecode(submission.stdout);
-  const stderr = tryDecode(submission.stderr);
-  const compileOutput = tryDecode(submission.compile_output);
+    const stdout = tryDecode(submission.stdout);
+    const stderr = tryDecode(submission.stderr);
+    const compileOutput = tryDecode(submission.compile_output);
+    const finalStatusId = submission?.status?.id ?? 0;
+    const statusDescription = submission?.status?.description || "Unknown";
 
-    // Step 4: Send final result including sanitization summary (for client debugging)
+    // Check for errors first
+    if (finalStatusId === 6 || compileOutput) {
+      return res.json({
+        stdout: null,
+        stderr: null,
+        compileOutput: compileOutput || "Compilation error occurred",
+        status: statusDescription,
+        isCorrect: false,
+        expectedOutput: expectedOutput || null,
+        error: "Compilation failed",
+        sanitization: sanitizationSummary,
+      });
+    }
+
+    if (finalStatusId === 7 || finalStatusId === 8 || stderr) {
+      return res.json({
+        stdout: stdout || null,
+        stderr: stderr || "Runtime error occurred",
+        compileOutput: null,
+        status: statusDescription,
+        isCorrect: false,
+        expectedOutput: expectedOutput || null,
+        error: "Runtime error",
+        sanitization: sanitizationSummary,
+      });
+    }
+
+    // Use enhanced comparison function
+    const isCorrect = compareOutputs(stdout || "", expectedOutput || "");
+
     return res.json({
       stdout,
       stderr,
       compileOutput,
-      status: submission.status?.description,
-      raw: submission,
+      status: statusDescription,
+      isCorrect,
+      expectedOutput: expectedOutput || null,
       sanitization: sanitizationSummary,
     });
   } catch (error) {

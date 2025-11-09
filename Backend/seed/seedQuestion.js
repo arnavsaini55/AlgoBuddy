@@ -11,8 +11,9 @@ const seed = async () => {
     await db.execute(sql`DELETE FROM questions;`);
     console.log("🧹 Cleared existing questions table.");
 
-    // Insert 60 questions (20 Easy, 25 Medium, 15 Hard)
-    await db.insert(questionsTable).values([
+  // Insert 60 questions (20 Easy, 25 Medium, 15 Hard)
+  // Build questions array first so we can derive `expectedOutput` when missing
+  const questionsArray = [
       // ===================== EASY (20) =====================
       {
         title: "Two Sum",
@@ -1368,7 +1369,25 @@ Output: [null,null,1,null,-1]`,
 }`,
         tags: ["design", "hashmap"]
       }
-    ]);
+    ];
+
+    // Prepare objects for DB insertion. Do NOT add frontend-only `expectedOutput`.
+    const questionsToInsert = questionsArray.map((q) => ({
+      title: q.title,
+      description: q.description,
+      difficulty: q.difficulty,
+      inputFormat: q.inputFormat,
+      outputFormat: q.outputFormat,
+      constraints: q.constraints,
+      sampleTestcases: q.sampleTestcases || [],
+      expectedFunctionName: q.expectedFunctionName,
+      language: q.language || 'javascript',
+      starterCode: q.starterCode,
+      correctAnswer: q.correctAnswer,
+      tags: q.tags || [],
+    }));
+
+    await db.insert(questionsTable).values(questionsToInsert);
 
     console.log("✅ Seeded 60 questions successfully!");
   } catch (err) {
