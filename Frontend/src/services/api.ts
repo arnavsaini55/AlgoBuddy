@@ -32,9 +32,7 @@ const API_BASE_URL = (() => {
       return `http://${customIp}:3000/api`;
     }
     
-    // For Expo Go on iOS physical device, always use your machine's IP
-    // This is the IP address shown when you run 'expo start'
-    // Replace with your actual IP address
+   
     const expoGoIp = "192.168.29.114";
     return `http://${expoGoIp}:3000/api`;
   }

@@ -31,9 +31,6 @@ const Login = () => {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
-  const messageOpacity = useRef(new Animated.Value(0)).current;
-  const rocketX = useRef(new Animated.Value(0)).current;
-  const greetAnim = useRef(new Animated.Value(0)).current;
 
   // Handle login with backend
   const handleLogin = async () => {
@@ -82,36 +79,6 @@ const Login = () => {
       ])
     ).start();
   }, []);
-
-  // Subtle message reveal when user types
-  useEffect(() => {
-    const hasInput = Boolean(email || password);
-    Animated.timing(messageOpacity, {
-      toValue: hasInput ? 1 : 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [email, password]);
-
-  // Greeting appears when user starts entering password
-  useEffect(() => {
-    const hasPassword = Boolean(password);
-    Animated.timing(greetAnim, {
-      toValue: hasPassword ? 1 : 0,
-      duration: 350,
-      useNativeDriver: true,
-    }).start();
-  }, [password]);
-
-  // Rocket lift-off on button press-in (non-blocking visual only)
-  const handlePressIn = () => {
-    rocketX.setValue(0);
-    Animated.timing(rocketX, {
-      toValue: 120,
-      duration: 600,
-      useNativeDriver: true,
-    }).start(() => rocketX.setValue(0));
-  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9ff" }}>
@@ -183,34 +150,8 @@ const Login = () => {
             value={password}
             onChangeText={setPassword}
             placeholder="Password"
-            placeholderTextColor="#7f8c8d"
             secureTextEntry
           />
-
-          {/* Animated greet on password input */}
-          <Animated.View
-            style={{
-              opacity: greetAnim,
-              transform: [
-                {
-                  translateY: greetAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [6, 0],
-                  }),
-                },
-                {
-                  scale: greetAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.98, 1],
-                  }),
-                },
-              ],
-            }}
-          >
-            <View style={styles.greetContainer}>
-              <Text style={styles.greetText}>Great to see you! 🔒</Text>
-            </View>
-          </Animated.View>
 
           <TouchableOpacity
             style={{ alignSelf: "flex-end", marginTop: 8 }}
@@ -221,21 +162,9 @@ const Login = () => {
             </Text>
           </TouchableOpacity>
 
-          {/* Friendly animated message */}
-          <Animated.View style={[styles.messageContainer, { opacity: messageOpacity }]}> 
-            <Text style={styles.messageText}>
-              {email ? "Welcome back!" : "Ready to launch your next challenge?"}
-            </Text>
-            <View style={styles.rocketRow}>
-              <Animated.Text style={{ transform: [{ translateX: rocketX }] }}>🚀</Animated.Text>
-              <Text style={{ color: "#4C68FF", fontWeight: "600" }}>Let’s go</Text>
-            </View>
-          </Animated.View>
-
           <TouchableOpacity
             style={styles.button}
             onPress={handleLogin}
-            onPressIn={handlePressIn}
             activeOpacity={0.8}
           >
             <Text style={styles.buttonText}>LOG IN</Text>

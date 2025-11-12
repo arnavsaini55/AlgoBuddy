@@ -7,6 +7,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  BackHandler,
+  Alert,
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -55,7 +57,7 @@ const Registration = () => {
       setIsPressed(false);
 
       alert("Registration Successful! Please log in.");
-      navigation.replace(Routes.Login); // Use replace to prevent back to registration
+      navigation.replace(Routes.Login); 
     } catch (err: any) {
       setIsPressed(false);
       console.log(err);
@@ -88,6 +90,27 @@ const Registration = () => {
       ])
     ).start();
   }, []);
+
+  // Prevent navigating back to dashboard from Registration
+  useEffect(() => {
+    const onBackPress = () => {
+      Alert.alert('Action blocked', 'You cannot go back from the registration screen.');
+      return true; // prevent default behavior
+    };
+
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      // Prevent the default behavior of leaving the screen
+      e.preventDefault();
+      Alert.alert('Action blocked', 'You cannot go back from the registration screen.');
+    });
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+    return () => {
+      unsubscribe();
+      backHandler.remove();
+    };
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.container}>
