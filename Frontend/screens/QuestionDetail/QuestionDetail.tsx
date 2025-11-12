@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -10,6 +11,10 @@ import {
   Platform,
   Alert,
   SafeAreaViewComponent,
+  Animated,
+  Easing,
+  KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { RootStackParamList, Routes } from "../../navigation/Routes";
@@ -47,10 +52,16 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("javascript");
   const [running, setRunning] = useState(false);
+  const [showLanguagePicker, setShowLanguagePicker] = useState(false);
+
+  // Animation values
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const slideAnim = useState(new Animated.Value(50))[0];
+  const buttonScale = useState(new Animated.Value(1))[0];
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // temporary user id — replace with redux later
   const userId = "temp_user_id";
-
 
   const LOCAL_IP = "192.168.29.114"; 
   const DEFAULT_BASE =
@@ -62,6 +73,21 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({
       try {
         const data = await getQuestionById(id);
         setQuestion(data);
+        // Trigger entrance animation
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 600,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 600,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]).start();
       } catch (err) {
         console.error("Error fetching question:", err);
       } finally {
@@ -70,6 +96,27 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({
     };
     fetchQuestion();
   }, [id]);
+
+  // Keyboard listeners
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
 
   useEffect(() => {
     const loadCode = async () => {
@@ -105,7 +152,7 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({
         let valueStr = match[2].trim();
         
         try {
-          // Try to parse as JSON (for arrays, objects, numbers, booleans)
+         
           result[key] = JSON.parse(valueStr);
         } catch {
           // If not valid JSON, try to clean and parse again
@@ -233,6 +280,37 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({
     }
   };
 
+  const handleLanguageSelect = (lang: string) => {
+    setLanguage(lang);
+    setShowLanguagePicker(false);
+  };
+
+  const getLanguageLabel = (lang: string) => {
+    const labels: { [key: string]: string } = {
+      javascript: "JavaScript",
+      python: "Python",
+      cpp: "C++",
+      java: "Java",
+    };
+    return labels[lang] || lang;
+  };
+
+  const handleRunPress = () => {
+    Animated.sequence([
+      Animated.timing(buttonScale, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScale, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    handleRun();
+  };
+
   const handleRun = async () => {
     if (!code.trim()) {
       Alert.alert("Error", "Please write some code first!");
@@ -333,105 +411,300 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>{question.title}</Text>
-        <Text style={styles.meta}>{question.difficulty}</Text>
-
-        <View style={styles.card}>
-          <Text style={styles.description}>{question.description}</Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>Select Language</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={language}
-            dropdownIconColor="#fff"
-            onValueChange={(value) => setLanguage(value)}
-            style={styles.picker}
-            itemStyle={{ color: "#fff" }}
-          >
-            <Picker.Item label="JavaScript" value="javascript" />
-            <Picker.Item label="Python" value="python" />
-            <Picker.Item label="C++" value="cpp" />
-            <Picker.Item label="Java" value="java" />
-          </Picker>
-        </View>
-
-        <Text style={styles.sectionTitle}>Your Code</Text>
-        <TextInput
-          multiline
-          value={code}
-          onChangeText={setCode}
-          placeholder={`Write your ${language} code here...`}
-          placeholderTextColor="#666"
-          style={styles.editor}
-        />
-
-        <TouchableOpacity
-          onPress={handleRun}
-          disabled={running}
-          style={[styles.runButton, running && { opacity: 0.7 }]}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <ScrollView 
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: keyboardHeight > 0 ? 20 : 50 }
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          scrollEventThrottle={16}
         >
-          {running ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.runButtonText}>🚀 Run Code</Text>
-          )}
-        </TouchableOpacity>
-      </ScrollView>
+          <Animated.View 
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
+          >
+            <Text style={styles.title}>{question.title}</Text>
+            <Text style={styles.meta}>{question.difficulty}</Text>
+
+            <View style={styles.card}>
+              <Text style={styles.description}>{question.description}</Text>
+            </View>
+
+            <Text style={styles.sectionTitle}>Select Language</Text>
+            <TouchableOpacity 
+              style={styles.languageButton}
+              onPress={() => setShowLanguagePicker(!showLanguagePicker)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.languageButtonText}>
+                {getLanguageLabel(language)}
+              </Text>
+              <Text style={styles.languageButtonArrow}>
+                {showLanguagePicker ? "▲" : "▼"}
+              </Text>
+            </TouchableOpacity>
+
+            {showLanguagePicker && (
+              <View style={styles.languageOptions}>
+                {["javascript", "python", "cpp", "java"].map((lang) => (
+                  <TouchableOpacity
+                    key={lang}
+                    style={[
+                      styles.languageOption,
+                      language === lang && styles.languageOptionActive,
+                    ]}
+                    onPress={() => handleLanguageSelect(lang)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.languageOptionText,
+                        language === lang && styles.languageOptionTextActive,
+                      ]}
+                    >
+                      {getLanguageLabel(lang)}
+                    </Text>
+                    {language === lang && (
+                      <Text style={styles.checkmark}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            <Text style={styles.sectionTitle}>Your Code</Text>
+            <View style={styles.editorContainer}>
+              <TextInput
+                multiline
+                value={code}
+                onChangeText={setCode}
+                placeholder={`Write your ${language} code here...`}
+                placeholderTextColor="#666"
+                style={styles.editor}
+                scrollEnabled={false}
+              />
+            </View>
+
+            <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+              <TouchableOpacity
+                onPress={handleRunPress}
+                disabled={running}
+                style={[styles.runButton, running && styles.runButtonDisabled]}
+                activeOpacity={0.8}
+              >
+                {running ? (
+                  <View style={styles.runButtonContent}>
+                    <ActivityIndicator color="#fff" size="small" />
+                    <Text style={styles.runButtonText}>Running...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.runButtonText}>🚀 Run Code</Text>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0b" },
-  content: { padding: 20, paddingBottom: 50 },
-  title: { fontSize: 24, fontWeight: "800", color: "#fff" },
-  meta: { color: "#A6A6A6", marginTop: 8, marginBottom: 16, fontWeight: "600" },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#0b0b0b" 
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  content: { 
+    padding: 20, 
+    paddingBottom: 50 
+  },
+  title: { 
+    fontSize: 26, 
+    fontWeight: "800", 
+    color: "#fff",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  meta: { 
+    color: "#00ffcc", 
+    marginTop: 8, 
+    marginBottom: 20, 
+    fontWeight: "600",
+    fontSize: 14,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
   card: {
     backgroundColor: "#141414",
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
     borderColor: "#1f1f1f",
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  description: { color: "#EDEDED", lineHeight: 22 },
-  sectionTitle: { color: "#fff", fontWeight: "700", marginTop: 20 },
-  pickerContainer: {
-    backgroundColor: "#1e1e1e",
-    borderRadius: 8,
+  description: { 
+    color: "#EDEDED", 
+    lineHeight: 24,
+    fontSize: 15,
+  },
+  sectionTitle: { 
+    color: "#fff", 
+    fontWeight: "700", 
+    marginTop: 24,
+    marginBottom: 12,
+    fontSize: 16,
+    letterSpacing: 0.3,
+  },
+  languageButton: {
+    backgroundColor: "#1a1a1a",
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#2c2c2c",
-    marginVertical: 10,
+    padding: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
   },
-  picker: { color: "#fff" },
-  editor: {
-    backgroundColor: "#1a1a1a",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#333",
-    minHeight: 220,
+  languageButtonText: {
     color: "#fff",
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  languageButtonArrow: {
+    color: "#00ffcc",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  languageOptions: {
+    backgroundColor: "#1a1a1a",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#2c2c2c",
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  languageOption: {
+    padding: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#2c2c2c",
+  },
+  languageOptionActive: {
+    backgroundColor: "#252525",
+  },
+  languageOptionText: {
+    color: "#ccc",
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  languageOptionTextActive: {
+    color: "#00ffcc",
+    fontWeight: "600",
+  },
+  checkmark: {
+    color: "#00ffcc",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  pickerContainer: {
+    backgroundColor: "#1a1a1a",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#2c2c2c",
+    overflow: "hidden",
+    shadowColor: "#00ffcc",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  picker: { 
+    color: "#fff",
+    height: 50,
+  },
+  editorContainer: {
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#2c2c2c",
+    backgroundColor: "#1a1a1a",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  editor: {
+    minHeight: 240,
+    color: "#fff",
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     textAlignVertical: "top",
-    padding: 10,
+    padding: 16,
+    fontSize: 14,
+    lineHeight: 20,
   },
   runButton: {
     backgroundColor: "#00b894",
-    padding: 14,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 16,
+    marginTop: 24,
+    shadowColor: "#00b894",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  runButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  runButtonDisabled: {
+    opacity: 0.7,
+    backgroundColor: "#008f6f",
+  },
+  runButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  runButtonText: { 
+    color: "#fff", 
+    fontWeight: "bold", 
+    fontSize: 16,
+    letterSpacing: 0.5,
+  },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#0b0b0b",
   },
-  loadingText: { color: "#D0D0D0", marginTop: 10 },
-  errorText: { color: "#FF6B6B", fontWeight: "600" },
+  loadingText: { 
+    color: "#D0D0D0", 
+    marginTop: 16,
+    fontSize: 15,
+  },
+  errorText: { 
+    color: "#FF6B6B", 
+    fontWeight: "600",
+    fontSize: 16,
+  },
 });
 
 export default QuestionDetail;
