@@ -26,8 +26,17 @@ const API_BASE_URL = (() => {
   }
 
   if (Platform.OS === "ios") {
-    const host = getIosHost();
-    return "http://192.168.29.114:3000/api";
+    // Check for custom IP first (highest priority)
+    const customIp = (global as any).API_IP;
+    if (customIp) {
+      return `http://${customIp}:3000/api`;
+    }
+    
+    // For Expo Go on iOS physical device, always use your machine's IP
+    // This is the IP address shown when you run 'expo start'
+    // Replace with your actual IP address
+    const expoGoIp = "192.168.29.114";
+    return `http://${expoGoIp}:3000/api`;
   }
 
   // Fallback for web or other platforms
@@ -39,7 +48,10 @@ const API_BASE_URL = (() => {
  */
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 5000,
+  timeout: 30000, // Increased timeout for mobile networks (30 seconds)
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 api.interceptors.request.use(async (config) => {

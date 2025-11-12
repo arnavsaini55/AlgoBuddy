@@ -50,6 +50,9 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
+// Listen on all network interfaces (0.0.0.0) to allow access from mobile devices
 app.listen(PORT, () => {
-  console.log(`Server started on http://localhost:${PORT}`);
+  console.log(`Server started on http://0.0.0.0:${PORT}`);
+  console.log(`Server accessible at http://localhost:${PORT}`);
+  console.log(`For mobile devices, use: http://192.168.29.114:${PORT}`);
 });

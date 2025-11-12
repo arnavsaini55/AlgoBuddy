@@ -51,16 +51,16 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({
   // temporary user id — replace with redux later
   const userId = "temp_user_id";
 
+
+  const LOCAL_IP = "192.168.29.114"; 
   const DEFAULT_BASE =
-    Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
+    Platform.OS === "android" ? `http://${LOCAL_IP}:3000` : `http://${LOCAL_IP}:3000`;
   const BASE_URL = (global as any).API_URL || DEFAULT_BASE;
 
   useEffect(() => {
     const fetchQuestion = async () => {
       try {
         const data = await getQuestionById(id);
-        console.log('Fetched question data:', data);
-        console.log('sampleTestcases:', data.sampleTestcases || data.sample_testcases);
         setQuestion(data);
       } catch (err) {
         console.error("Error fetching question:", err);
@@ -261,14 +261,8 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({
     // Parse input string to extract actual values
     const testInput = parseInputString(inputString);
     
-    console.log('Parsed test input:', testInput);
-    console.log('Expected function name:', functionName);
-    console.log('Expected output:', expectedOutput);
-    
     // Wrap code to call the function with test input
     const wrappedCode = wrapCodeForExecution(code, functionName, testInput, language);
-    
-    console.log('Wrapped code:', wrappedCode);
 
     setRunning(true);
 
@@ -286,11 +280,8 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({
 
       const data = res.data;
       
-      console.log('Compiler response:', data);
-      
       // Check if there's a compilation error
       if (data.compileOutput) {
-        console.error('Compilation error:', data.compileOutput);
         Alert.alert("Compilation Error", data.compileOutput);
         setRunning(false);
         return;
@@ -298,7 +289,6 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({
 
       // Check if there's a runtime error
       if (data.stderr) {
-        console.error('Runtime error:', data.stderr);
         Alert.alert("Runtime Error", data.stderr);
         setRunning(false);
         return;
@@ -308,14 +298,6 @@ const QuestionDetail: React.FC<{ route: QuestionDetailRouteProp }> = ({
       
       // Use backend comparison if available, otherwise compare on frontend
       const isMatch = data.isCorrect !== undefined ? data.isCorrect : compareOutputs(result, expectedOutput);
-      
-      // Debug logs
-      console.log('=== OUTPUT COMPARISON ===');
-      console.log('User Output (raw):', JSON.stringify(result));
-      console.log('Expected Output (raw):', JSON.stringify(expectedOutput));
-      console.log('Backend isCorrect:', data.isCorrect);
-      console.log('Frontend comparison:', compareOutputs(result, expectedOutput));
-      console.log('Final Match:', isMatch);
 
       if (isMatch) {
         Alert.alert("✅ Success", "Your output matches the expected output!");
